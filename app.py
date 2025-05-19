@@ -20,7 +20,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
-# Initialize SQLAlchemy
+# Initialize global db object
 db = SQLAlchemy(app)
 
 # OpenWeatherMap API key

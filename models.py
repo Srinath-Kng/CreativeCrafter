@@ -1,5 +1,8 @@
 from datetime import datetime
-from app import db
+from flask_sqlalchemy import SQLAlchemy
+
+# This is a placeholder that will be replaced with the actual db instance from app.py
+db = SQLAlchemy()
 
 class TemperatureAdjustment(db.Model):
     """Model for storing temperature adjustment history"""
