@@ -31,6 +31,25 @@ def index():
     """Render the main page of the thermostat simulator"""
     return render_template('index.html')
 
+@app.route('/history')
+def history():
+    """Render the temperature adjustment history page"""
+    return render_template('history.html')
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    """API endpoint to get temperature adjustment history"""
+    from models import TemperatureAdjustment
+    try:
+        # Get the last 20 temperature adjustments, sorted by timestamp (newest first)
+        adjustments = TemperatureAdjustment.query.order_by(TemperatureAdjustment.timestamp.desc()).limit(20).all()
+        return jsonify({
+            'history': [adjustment.to_dict() for adjustment in adjustments]
+        })
+    except Exception as e:
+        logging.error(f"Error fetching adjustment history: {str(e)}")
+        return jsonify({'error': 'Failed to retrieve history data'}), 500
+
 @app.route('/api/adjust-temperature', methods=['POST'])
 def adjust_temperature():
     """API endpoint to calculate temperature adjustments based on AI logic"""
@@ -68,6 +87,26 @@ def adjust_temperature():
     
     # Generate AI suggestion
     ai_suggestion = generate_ai_suggestion(adjusted_temp, room_temp, outdoor_temp, occupancy, time_of_day)
+    
+    # Save to database
+    from models import TemperatureAdjustment
+    try:
+        adjustment = TemperatureAdjustment(
+            room_temp=room_temp,
+            outdoor_temp=outdoor_temp,
+            preferred_temp=preferred_temp,
+            adjusted_temp=adjusted_temp,
+            time_of_day=time_of_day,
+            occupancy=occupancy,
+            energy_efficiency=energy_efficiency,
+            suggestion=ai_suggestion
+        )
+        db.session.add(adjustment)
+        db.session.commit()
+        logging.debug(f"Saved temperature adjustment record with ID: {adjustment.id}")
+    except Exception as e:
+        logging.error(f"Error saving adjustment to database: {str(e)}")
+        db.session.rollback()
     
     return jsonify({
         'adjustedTemp': round(adjusted_temp, 1),
