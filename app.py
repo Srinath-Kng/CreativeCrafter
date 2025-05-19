@@ -1,10 +1,27 @@
 import os
+import logging
 import requests
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 
 # Create Flask app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default-secret-key")
+
+# Configure database
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+
+# Initialize SQLAlchemy
+db = SQLAlchemy(app)
 
 # OpenWeatherMap API key
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
