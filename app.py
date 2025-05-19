@@ -1,9 +1,13 @@
 import os
+import requests
 from flask import Flask, render_template, request, jsonify
 
 # Create Flask app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default-secret-key")
+
+# OpenWeatherMap API key
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
 
 @app.route('/')
 def index():
@@ -117,3 +121,41 @@ def generate_ai_suggestion(adjusted_temp, current_temp, outdoor_temp, occupancy,
         return random.choice(suggestions)
     else:
         return "Current setting is optimal for comfort and energy efficiency."
+        
+@app.route('/api/weather', methods=['GET'])
+def get_weather():
+    """API endpoint to fetch current weather based on location"""
+    # Get latitude and longitude from request
+    lat = request.args.get('lat')
+    lon = request.args.get('lon')
+    
+    if not lat or not lon:
+        return jsonify({'error': 'Latitude and longitude are required'}), 400
+    
+    # Check if OpenWeather API key exists
+    if not OPENWEATHER_API_KEY:
+        return jsonify({'error': 'Weather API key not configured'}), 500
+    
+    try:
+        # Call OpenWeatherMap API
+        weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&units=metric&appid={OPENWEATHER_API_KEY}"
+        response = requests.get(weather_url)
+        response.raise_for_status()  # Raise exception for HTTP errors
+        
+        weather_data = response.json()
+        
+        # Extract relevant information
+        temperature = weather_data.get('main', {}).get('temp')
+        location = weather_data.get('name')
+        country = weather_data.get('sys', {}).get('country')
+        
+        if temperature is None:
+            return jsonify({'error': 'Temperature data not available'}), 500
+            
+        return jsonify({
+            'temperature': round(temperature, 1),
+            'location': f"{location}, {country}" if location and country else "your location"
+        })
+        
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f'Weather service error: {str(e)}'}), 500

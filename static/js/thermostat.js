@@ -4,10 +4,12 @@ let temperatureChart = null;
 // DOM elements
 const form = document.getElementById('thermo-form');
 const simulateBtn = document.getElementById('simulate-btn');
+const getLocationBtn = document.getElementById('get-location-btn');
 const outputDiv = document.getElementById('output');
 const aiSuggestionDiv = document.getElementById('ai-suggestion');
 const energyMeterDiv = document.getElementById('energy-efficiency-meter');
 const chartCanvas = document.getElementById('temperature-chart');
+const locationStatusDiv = document.getElementById('location-status');
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -18,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up event listeners
     simulateBtn.addEventListener('click', simulateAdjustment);
+    getLocationBtn.addEventListener('click', getLocationTemperature);
     
     // Initialize empty chart
     initChart();
@@ -185,4 +188,54 @@ function updateChart(current, preferred, adjusted) {
     
     // Update chart
     temperatureChart.update();
+}
+
+function getLocationTemperature() {
+    // Show loading indicator
+    locationStatusDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Getting your location...</small>';
+    
+    // Check if geolocation is supported by the browser
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            // Success callback
+            (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                locationStatusDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Fetching weather data...</small>';
+                
+                // Get weather data from backend
+                fetch(`/api/weather?lat=${latitude}&lon=${longitude}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Weather data not available');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Update the outdoor temperature field
+                        document.getElementById('outdoorTemp').value = data.temperature;
+                        locationStatusDiv.innerHTML = `<small class="text-success"><i class="fas fa-check-circle"></i> Current temperature in ${data.location}</small>`;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        locationStatusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${error.message}</small>`;
+                    });
+            },
+            // Error callback
+            (error) => {
+                console.error('Geolocation error:', error);
+                let errorMessage = 'Unable to get your location';
+                if (error.code === 1) {
+                    errorMessage = 'Location permission denied';
+                } else if (error.code === 2) {
+                    errorMessage = 'Location unavailable';
+                } else if (error.code === 3) {
+                    errorMessage = 'Location request timed out';
+                }
+                locationStatusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</small>`;
+            }
+        );
+    } else {
+        locationStatusDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-circle"></i> Geolocation is not supported by your browser</small>';
+    }
 }
