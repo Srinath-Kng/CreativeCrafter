@@ -4,12 +4,10 @@ let temperatureChart = null;
 // DOM elements
 const form = document.getElementById('thermo-form');
 const simulateBtn = document.getElementById('simulate-btn');
-const getLocationBtn = document.getElementById('get-location-btn');
 const outputDiv = document.getElementById('output');
 const aiSuggestionDiv = document.getElementById('ai-suggestion');
 const energyMeterDiv = document.getElementById('energy-efficiency-meter');
 const chartCanvas = document.getElementById('temperature-chart');
-const locationStatusDiv = document.getElementById('location-status');
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -20,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up event listeners
     simulateBtn.addEventListener('click', simulateAdjustment);
-    getLocationBtn.addEventListener('click', getLocationTemperature);
     
     // Initialize empty chart
     initChart();
