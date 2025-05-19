@@ -125,6 +125,8 @@ def generate_ai_suggestion(adjusted_temp, current_temp, outdoor_temp, occupancy,
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
     """API endpoint to fetch current weather based on location"""
+    import logging
+    
     # Get latitude and longitude from request
     lat = request.args.get('lat')
     lon = request.args.get('lon')
@@ -134,15 +136,31 @@ def get_weather():
     
     # Check if OpenWeather API key exists
     if not OPENWEATHER_API_KEY:
+        logging.error("OpenWeather API key is missing")
         return jsonify({'error': 'Weather API key not configured'}), 500
     
     try:
         # Call OpenWeatherMap API
         weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&units=metric&appid={OPENWEATHER_API_KEY}"
+        logging.debug(f"Requesting weather data from: {weather_url.replace(OPENWEATHER_API_KEY, 'API_KEY_HIDDEN')}")
+        
         response = requests.get(weather_url)
-        response.raise_for_status()  # Raise exception for HTTP errors
+        
+        # Log the status code for debugging
+        logging.debug(f"OpenWeatherMap API response status: {response.status_code}")
+        
+        # Handle specific error cases
+        if response.status_code == 401:
+            logging.error("OpenWeatherMap API key invalid or unauthorized")
+            return jsonify({'error': 'API key invalid or unauthorized. It may take some time for a new API key to activate.'}), 401
+        elif response.status_code == 429:
+            logging.error("OpenWeatherMap API rate limit exceeded")
+            return jsonify({'error': 'Weather API rate limit exceeded. Please try again later.'}), 429
+        
+        response.raise_for_status()  # Raise exception for other HTTP errors
         
         weather_data = response.json()
+        logging.debug(f"Weather data received: {weather_data}")
         
         # Extract relevant information
         temperature = weather_data.get('main', {}).get('temp')
@@ -150,6 +168,7 @@ def get_weather():
         country = weather_data.get('sys', {}).get('country')
         
         if temperature is None:
+            logging.error("Temperature data not available in API response")
             return jsonify({'error': 'Temperature data not available'}), 500
             
         return jsonify({
@@ -158,4 +177,8 @@ def get_weather():
         })
         
     except requests.exceptions.RequestException as e:
+        logging.error(f"Weather service error: {str(e)}")
         return jsonify({'error': f'Weather service error: {str(e)}'}), 500
+    except Exception as e:
+        logging.error(f"Unexpected error in weather API: {str(e)}")
+        return jsonify({'error': 'Unable to fetch weather data'}), 500

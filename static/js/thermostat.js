@@ -207,7 +207,13 @@ function getLocationTemperature() {
                 fetch(`/api/weather?lat=${latitude}&lon=${longitude}`)
                     .then(response => {
                         if (!response.ok) {
-                            throw new Error('Weather data not available');
+                            // Get error details from response if available
+                            return response.json().then(errorData => {
+                                throw new Error(errorData.error || `Weather service error (${response.status})`);
+                            }).catch(e => {
+                                // If can't parse JSON, use status text
+                                throw new Error(`Weather service error: ${response.statusText || response.status}`);
+                            });
                         }
                         return response.json();
                     })
@@ -218,7 +224,16 @@ function getLocationTemperature() {
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        locationStatusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${error.message}</small>`;
+                        
+                        // Provide helpful error message based on common issues
+                        let errorMessage = error.message;
+                        if (errorMessage.includes('API key invalid') || errorMessage.includes('401')) {
+                            errorMessage = 'Weather API key invalid. New API keys may take a few hours to activate.';
+                        } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+                            errorMessage = 'Weather service limit reached. Please try again later.';
+                        }
+                        
+                        locationStatusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</small>`;
                     });
             },
             // Error callback
@@ -226,13 +241,19 @@ function getLocationTemperature() {
                 console.error('Geolocation error:', error);
                 let errorMessage = 'Unable to get your location';
                 if (error.code === 1) {
-                    errorMessage = 'Location permission denied';
+                    errorMessage = 'Location permission denied. Please allow location access and try again.';
                 } else if (error.code === 2) {
-                    errorMessage = 'Location unavailable';
+                    errorMessage = 'Location unavailable. Check your device settings.';
                 } else if (error.code === 3) {
-                    errorMessage = 'Location request timed out';
+                    errorMessage = 'Location request timed out. Please try again.';
                 }
                 locationStatusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</small>`;
+            },
+            // Geolocation options
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             }
         );
     } else {
