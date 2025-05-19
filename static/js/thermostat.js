@@ -194,6 +194,29 @@ function getLocationTemperature() {
     // Show loading indicator
     locationStatusDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Getting your location...</small>';
     
+    // Check if we should use fallback mode
+    const useFallback = document.getElementById('fallback-mode') && document.getElementById('fallback-mode').checked;
+    
+    if (useFallback) {
+        // Use fallback API endpoint that doesn't require real location
+        locationStatusDiv.innerHTML = '<small class="text-info"><i class="fas fa-spinner fa-spin"></i> Generating sample temperature data...</small>';
+        
+        fetch('/api/weather?fallback=true')
+            .then(response => response.json())
+            .then(data => {
+                // Update the outdoor temperature field
+                document.getElementById('outdoorTemp').value = data.temperature;
+                locationStatusDiv.innerHTML = `<small class="text-success"><i class="fas fa-check-circle"></i> Sample temperature from ${data.location}</small>`;
+            })
+            .catch(error => {
+                console.error('Error in fallback mode:', error);
+                locationStatusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle"></i> Error generating sample data</small>`;
+            });
+        
+        return;
+    }
+    
+    // Regular geolocation flow
     // Check if geolocation is supported by the browser
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -233,7 +256,19 @@ function getLocationTemperature() {
                             errorMessage = 'Weather service limit reached. Please try again later.';
                         }
                         
-                        locationStatusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</small>`;
+                        // Show error and offer fallback option
+                        locationStatusDiv.innerHTML = `
+                            <small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</small>
+                            <div class="mt-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="fallback-mode">
+                                    <label class="form-check-label" for="fallback-mode">
+                                        <small>Use sample data instead</small>
+                                    </label>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary mt-1" onclick="getLocationTemperature()">Try again</button>
+                            </div>
+                        `;
                     });
             },
             // Error callback
@@ -247,7 +282,20 @@ function getLocationTemperature() {
                 } else if (error.code === 3) {
                     errorMessage = 'Location request timed out. Please try again.';
                 }
-                locationStatusDiv.innerHTML = `<small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</small>`;
+                
+                // Show error and offer fallback option
+                locationStatusDiv.innerHTML = `
+                    <small class="text-danger"><i class="fas fa-exclamation-circle"></i> ${errorMessage}</small>
+                    <div class="mt-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="fallback-mode">
+                            <label class="form-check-label" for="fallback-mode">
+                                <small>Use sample data instead</small>
+                            </label>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary mt-1" onclick="getLocationTemperature()">Try again</button>
+                    </div>
+                `;
             },
             // Geolocation options
             {
@@ -257,6 +305,18 @@ function getLocationTemperature() {
             }
         );
     } else {
-        locationStatusDiv.innerHTML = '<small class="text-danger"><i class="fas fa-exclamation-circle"></i> Geolocation is not supported by your browser</small>';
+        // Show error for browsers that don't support geolocation and offer fallback
+        locationStatusDiv.innerHTML = `
+            <small class="text-danger"><i class="fas fa-exclamation-circle"></i> Geolocation is not supported by your browser</small>
+            <div class="mt-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="fallback-mode" checked>
+                    <label class="form-check-label" for="fallback-mode">
+                        <small>Use sample data instead</small>
+                    </label>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary mt-1" onclick="getLocationTemperature()">Try with sample data</button>
+            </div>
+        `;
     }
 }

@@ -126,6 +126,22 @@ def generate_ai_suggestion(adjusted_temp, current_temp, outdoor_temp, occupancy,
 def get_weather():
     """API endpoint to fetch current weather based on location"""
     import logging
+    import random
+    
+    # Check if we're using the fallback mode (no API call)
+    use_fallback = request.args.get('fallback') == 'true'
+    
+    if use_fallback:
+        # Generate a reasonable random temperature based on season 
+        # (simplified for demo - could be more sophisticated in real app)
+        base_temp = 22  # Default comfortable room temperature
+        variation = random.uniform(-5, 5)  # Random variation
+        
+        return jsonify({
+            'temperature': round(base_temp + variation, 1),
+            'location': 'Demo Location (Fallback Mode)',
+            'fallback': True
+        })
     
     # Get latitude and longitude from request
     lat = request.args.get('lat')
@@ -140,19 +156,25 @@ def get_weather():
         return jsonify({'error': 'Weather API key not configured'}), 500
     
     try:
+        # Print API key for debugging (only first 4 and last 4 characters)
+        api_key = OPENWEATHER_API_KEY
+        masked_key = f"{api_key[:4]}...{api_key[-4:]}" if len(api_key) > 8 else "****"
+        logging.debug(f"Using API key: {masked_key}")
+        
         # Call OpenWeatherMap API
-        weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&units=metric&appid={OPENWEATHER_API_KEY}"
-        logging.debug(f"Requesting weather data from: {weather_url.replace(OPENWEATHER_API_KEY, 'API_KEY_HIDDEN')}")
+        weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&units=metric&appid={api_key}"
+        logging.debug(f"Requesting weather data from: {weather_url.replace(api_key, 'API_KEY_HIDDEN')}")
         
-        response = requests.get(weather_url)
+        response = requests.get(weather_url, timeout=10)
         
-        # Log the status code for debugging
+        # Log the status code and response content for debugging
         logging.debug(f"OpenWeatherMap API response status: {response.status_code}")
+        logging.debug(f"OpenWeatherMap API response content: {response.text[:200]}...")
         
         # Handle specific error cases
         if response.status_code == 401:
             logging.error("OpenWeatherMap API key invalid or unauthorized")
-            return jsonify({'error': 'API key invalid or unauthorized. It may take some time for a new API key to activate.'}), 401
+            return jsonify({'error': 'Weather API key invalid or unauthorized. Please check the key or wait for it to activate.'}), 401
         elif response.status_code == 429:
             logging.error("OpenWeatherMap API rate limit exceeded")
             return jsonify({'error': 'Weather API rate limit exceeded. Please try again later.'}), 429
