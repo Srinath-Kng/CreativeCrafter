@@ -26,19 +26,23 @@ function fetchHistoryData() {
     fetch('/api/history')
         .then(response => {
             if (!response.ok) {
-                throw new Error('Failed to retrieve history data');
+                return response.json().then(errorData => {
+                    throw new Error(errorData.error || 'Failed to retrieve history data');
+                }).catch(e => {
+                    throw new Error('Failed to retrieve history data');
+                });
             }
             return response.json();
         })
         .then(data => {
             // Process received data
-            historyData = data.history;
+            historyData = data.history || [];
             
             // Hide loading indicator
             loadingIndicator.style.display = 'none';
             
             // Display data
-            if (historyData.length > 0) {
+            if (historyData && historyData.length > 0) {
                 displayHistoryTable();
                 initHistoryChart();
                 generateInsights();
@@ -54,6 +58,9 @@ function fetchHistoryData() {
             historyTableContainer.style.display = 'none';
             noDataMessage.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i> Error loading temperature history: ${error.message}</div>`;
             noDataMessage.style.display = 'block';
+            
+            // Show friendly message
+            insightsContainer.innerHTML = '<div class="alert alert-info text-center">Please try making some temperature adjustments first on the simulator page.</div>';
         });
 }
 

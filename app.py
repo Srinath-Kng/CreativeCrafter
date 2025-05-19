@@ -3,7 +3,7 @@ import logging
 import requests
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from database import db, init_db
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -20,8 +20,8 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
-# Initialize global db object
-db = SQLAlchemy(app)
+# Initialize database
+init_db(app)
 
 # OpenWeatherMap API key
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
@@ -91,19 +91,22 @@ def adjust_temperature():
     # Save to database
     from models import TemperatureAdjustment
     try:
-        adjustment = TemperatureAdjustment(
-            room_temp=room_temp,
-            outdoor_temp=outdoor_temp,
-            preferred_temp=preferred_temp,
-            adjusted_temp=adjusted_temp,
-            time_of_day=time_of_day,
-            occupancy=occupancy,
-            energy_efficiency=energy_efficiency,
-            suggestion=ai_suggestion
-        )
-        db.session.add(adjustment)
+        # Create a new adjustment record
+        new_adjustment = TemperatureAdjustment()
+        new_adjustment.room_temp = room_temp
+        new_adjustment.outdoor_temp = outdoor_temp
+        new_adjustment.preferred_temp = preferred_temp
+        new_adjustment.adjusted_temp = adjusted_temp
+        new_adjustment.time_of_day = time_of_day
+        new_adjustment.occupancy = occupancy
+        new_adjustment.energy_efficiency = energy_efficiency
+        new_adjustment.suggestion = ai_suggestion
+        
+        # Add to database session and commit
+        db.session.add(new_adjustment)
         db.session.commit()
-        logging.debug(f"Saved temperature adjustment record with ID: {adjustment.id}")
+        
+        logging.debug(f"Saved temperature adjustment record with ID: {new_adjustment.id}")
     except Exception as e:
         logging.error(f"Error saving adjustment to database: {str(e)}")
         db.session.rollback()
