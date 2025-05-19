@@ -1,0 +1,79 @@
+/* Custom styling for the thermostat simulator */
+
+/* Main container spacing */
+.main-container {
+    padding: 2rem 0;
+}
+
+/* Card styling for the thermostat form */
+.thermostat-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0;
+}
+
+/* Temperature display styling */
+.temp-display {
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Energy efficiency meter */
+.efficiency-container {
+    margin: 1.5rem 0;
+}
+
+/* Chart container */
+.chart-container {
+    margin: 1.5rem 0;
+    height: 300px;
+}
+
+/* Divider styling */
+.divider {
+    margin: 2rem 0;
+    border-top: 1px solid var(--bs-gray-600);
+}
+
+/* AI suggestion styling */
+#ai-suggestion {
+    margin-top: 1.5rem;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 768px) {
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .temp-display {
+        font-size: 2rem;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
+/* Custom thermostat icon styling */
+.thermostat-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--bs-info);
+}
+
+/* Animation for temperature changes */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.temp-change {
+    animation: pulse 1s ease-in-out;
+}
